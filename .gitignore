@@ -1,0 +1,28 @@
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Large data - not committed, re-downloaded via Kaggle
+data/raw/
+data/processed/*
+!data/processed/.gitkeep
+data/external/*
+!data/external/.gitkeep
+
+# Experiment artifacts / checkpoints - large, not committed
+experiments/*/
+!experiments/.gitkeep
+
+# Kaggle submissions
+submissions/*.csv
+
+# Model weights (Phase 2 package should document a download path, not commit weights)
+phase2_package/weights/
+*.bin
+*.safetensors
+*.pt
+*.ckpt
+
+.env
+.DS_Store
