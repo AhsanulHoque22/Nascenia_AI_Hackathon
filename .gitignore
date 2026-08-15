@@ -26,3 +26,7 @@ phase2_package/weights/
 
 .env
 .DS_Store
+
+# Mirror of data/processed/ used only to upload as a private Kaggle dataset
+# (regenerate with: cp data/processed/*.jsonl kaggle_dataset_processed/)
+kaggle_dataset_processed/

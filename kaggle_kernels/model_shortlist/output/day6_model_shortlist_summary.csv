@@ -1,0 +1,10 @@
+model_id,status,params,under_3b_cap,load_time_s,tokens_per_char,gen_time_s,mean_bertscore_f1,mean_token_f1,mean_rouge_l_f1,mean_composite
+Qwen/Qwen2.5-1.5B-Instruct,ok,1543714304.0,True,26.3,1.0596,120.6,0.6713,0.3869,0.2307,0.4979
+Qwen/Qwen2.5-3B-Instruct,ok,3085938688.0,False,34.7,1.0596,153.1,0.6849,0.3875,0.2313,0.505
+google/gemma-2-2b-it,"failed: OSError: You are trying to access a gated repo.
+Make sure to have access to it at https://huggingface.co/google/gemma-2-2b-it.
+401 Client Error. (Request ID: Root=1-6a8014d1-561888f866ae786a05006968;5cc1ee0a-a568-420f-9b3f-318edc26d609)
+
+Cannot access gated repo for url https://huggingface.co/google/gemma-2-2b-it/resolve/main/config.json.
+Access to model google/gemma-2-2b-it is restricted. You must have access to it and be authenticated to access it. Please log in.",,,,,,,,,
+sarvamai/sarvam-2b-v0.5,ok,2508834816.0,True,30.5,0.2885,60.6,0.569,0.0,0.0,0.2845
