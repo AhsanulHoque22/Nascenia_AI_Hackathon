@@ -1,0 +1,22 @@
+# Core
+pandas
+numpy
+
+# Tokenization / HF stack
+transformers
+datasets
+tokenizers
+sentencepiece
+sacremoses
+
+# Fine-tuning (used in Kaggle Notebooks for actual training; installed
+# locally too where possible for pipeline dev, but bitsandbytes needs CUDA
+# and will only really work on the Kaggle GPU runtime)
+torch
+accelerate
+peft
+bitsandbytes
+
+# Local eval harness
+bert-score
+rouge-score

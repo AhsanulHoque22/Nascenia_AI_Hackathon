@@ -1,6 +1,31 @@
 # Daily Plan — Nascenia AI Hackathon (Learning + Development, merged)
 
-Today: **Aug 6**. Phase 1 deadline is **Aug 24, 00:00 BD** — meaning your last real
+> **REVISED Aug 15**: Actual build work starts today, not Aug 6 as originally
+> planned — the original 18 build-days below are compressed into the 9
+> remaining calendar days (Aug 15–23) by running ~2 original days' worth of
+> work per calendar day. See `REVISED_SCHEDULE` section right below. The
+> day-by-day content further down is kept as reference for *what* each
+> original day covers — just not *when* anymore.
+
+## REVISED SCHEDULE (compressed, starting Aug 15)
+
+| Calendar day | Covers original Day(s) | Focus |
+|---|---|---|
+| Aug 15 (Thu) | Day 1 + Day 2 | Phase 0 setup (done) + EDA |
+| Aug 16 (Fri) | Day 3 + Day 4 | Data prep/cleaning + eval harness (BERTScore/TokenF1/ROUGE-L) |
+| Aug 17 (Sat) | Day 5 + Day 6 | Zero-shot baseline + model shortlist/comparison |
+| Aug 18 (Sun) | Day 7 + Day 8 | LoRA train.py + prompt template + small-scale pipeline validation |
+| Aug 19 (Mon) | Day 9 + Day 10 | First full fine-tune + **Kaggle submission #1** + error analysis |
+| Aug 20 (Tue) | Day 11 + Day 12 | Data-cleaning iteration + LoRA hyperparameter sweep |
+| Aug 21 (Wed) | Day 13 + Day 14 | Generation-config tuning + **submission #2** + backup model hedge |
+| Aug 22 (Thu) | Day 15 + Day 16 | Continue iteration + **submission #3** + ensembling go/no-go + start phase2_package |
+| Aug 23 (Fri) | Day 17 + Day 18 | Finish phase2_package + **submission #4** + final polish + **lock submission #5** |
+| Aug 24 00:00 | — | **Phase 1 closes** |
+
+Original 3-week framing below (Day 1 = Aug 6) is kept for task content only —
+ignore its dates.
+
+Phase 1 deadline is **Aug 24, 00:00 BD** — meaning your last real
 working day is **Aug 23**. Phase 2 deadline **Aug 25, 00:00** (only ~24h after
 Phase 1 closes, if you make top 10). Results **Aug 26**.
 
