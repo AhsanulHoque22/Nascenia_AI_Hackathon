@@ -1,0 +1,35 @@
+# Local CPU smoke test — validates the train.py pipeline runs end-to-end
+# (data loading, prompt formatting/masking, LoRA wrapping, Trainer loop,
+# checkpoint save, metrics.json) on a handful of examples. Not meant to
+# produce a good model — see qwen1p5b_lora_base.yaml for the real run
+# (Kaggle T4, Day 8/9).
+seed: 42
+
+base_model: Qwen/Qwen2.5-0.5B-Instruct  # already cached locally from Day 5 baseline
+
+quantization:
+  load_in_4bit: false  # no CUDA locally; would silently fall back anyway
+
+lora:
+  r: 8
+  alpha: 16
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+data:
+  train_path: data/processed/train.jsonl
+  val_path: data/processed/val.jsonl
+  max_train_samples: 4
+  max_eval_samples: 2
+
+training:
+  max_seq_len: 128
+  epochs: 1
+  batch_size: 1
+  eval_batch_size: 1
+  grad_accum_steps: 1
+  learning_rate: 0.0002
+  warmup_steps: 0
+  logging_steps: 1
+  save_total_limit: 1
+  gradient_checkpointing: true

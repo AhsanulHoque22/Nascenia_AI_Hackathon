@@ -1,0 +1,37 @@
+# Primary candidate (MODEL_SELECTION.md), first full-scale fine-tune.
+# Intended for the Kaggle T4 runtime (QLoRA — 4-bit base + LoRA adapter).
+# Per Day 6 infra notes: force NvidiaTeslaT4 in kernel-metadata.json and use
+# float16, not bfloat16 (P100 driver lacks bf16/sm_60 kernel support here).
+#
+# Start with data.max_train_samples set small (e.g. 500) for the Day 8
+# small-scale pipeline-validation run on Kaggle GPU; remove/raise it for the
+# Day 9 first full run.
+seed: 42
+
+base_model: Qwen/Qwen2.5-1.5B-Instruct
+
+quantization:
+  load_in_4bit: true
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+data:
+  train_path: data/processed/train.jsonl
+  val_path: data/processed/val.jsonl
+  max_train_samples: null
+  max_eval_samples: 500  # full 10,878-row val set is too slow to eval every epoch
+
+training:
+  max_seq_len: 768
+  epochs: 2
+  batch_size: 4
+  eval_batch_size: 4
+  grad_accum_steps: 4
+  learning_rate: 0.0002
+  warmup_steps: 30
+  logging_steps: 20
+  save_total_limit: 2

@@ -16,6 +16,7 @@ torch
 accelerate
 peft
 bitsandbytes
+pyyaml
 
 # Local eval harness
 bert-score
