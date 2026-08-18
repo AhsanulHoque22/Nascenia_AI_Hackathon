@@ -22,7 +22,10 @@ Data source: /kaggle/input/datasets/ahsanulhoque48cu/nascenia-processed-data/
 import subprocess
 import sys
 
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "peft"], check=True)
+subprocess.run(
+    [sys.executable, "-m", "pip", "install", "-q", "peft", "bitsandbytes>=0.46.1"],
+    check=True,
+)
 
 import json
 import random

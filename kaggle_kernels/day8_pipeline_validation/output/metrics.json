@@ -1,0 +1,67 @@
+{
+  "run_id": "day8_pipeline_validation",
+  "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "train_time_s": 491.6,
+  "train_loss": 1.0179948657751083,
+  "log_history": [
+    {
+      "loss": 1.212260913848877,
+      "grad_norm": 0.36925503611564636,
+      "learning_rate": 0.00016,
+      "epoch": 0.16,
+      "step": 5
+    },
+    {
+      "loss": 1.0941615104675293,
+      "grad_norm": 0.38471537828445435,
+      "learning_rate": 0.00017037037037037037,
+      "epoch": 0.32,
+      "step": 10
+    },
+    {
+      "loss": 1.0038301467895507,
+      "grad_norm": 0.3857113718986511,
+      "learning_rate": 0.00013333333333333334,
+      "epoch": 0.48,
+      "step": 15
+    },
+    {
+      "loss": 0.9638022422790528,
+      "grad_norm": 0.370453417301178,
+      "learning_rate": 9.62962962962963e-05,
+      "epoch": 0.64,
+      "step": 20
+    },
+    {
+      "loss": 0.9359368324279785,
+      "grad_norm": 0.3561268746852875,
+      "learning_rate": 5.925925925925926e-05,
+      "epoch": 0.8,
+      "step": 25
+    },
+    {
+      "loss": 0.9357545852661133,
+      "grad_norm": 0.35884150862693787,
+      "learning_rate": 2.2222222222222223e-05,
+      "epoch": 0.96,
+      "step": 30
+    },
+    {
+      "eval_loss": 0.8845375180244446,
+      "eval_runtime": 6.0222,
+      "eval_samples_per_second": 3.321,
+      "eval_steps_per_second": 0.83,
+      "epoch": 1.0,
+      "step": 32
+    },
+    {
+      "train_runtime": 491.1789,
+      "train_samples_per_second": 1.018,
+      "train_steps_per_second": 0.065,
+      "total_flos": 3061567586304000.0,
+      "train_loss": 1.0179948657751083,
+      "epoch": 1.0,
+      "step": 32
+    }
+  ]
+}
