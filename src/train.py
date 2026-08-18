@@ -71,6 +71,7 @@ from transformers import (
     TrainingArguments,
 )
 
+from hf_compat import filter_kwargs, length_grouping, warmup as warmup_kwargs
 from prompt_template import build_example
 
 IS_MAIN = LOCAL_RANK in (-1, 0)
@@ -300,12 +301,18 @@ def main():
     total_steps = args.max_steps or max(
         1, int(len(train_ds) / (bs * world) * t_cfg["epochs"])
     )
-    warmup_steps = t_cfg.get(
-        "warmup_steps", max(1, int(total_steps * t_cfg.get("warmup_ratio", 0.03)))
-    )
-    log(f"schedule: ~{total_steps} optimizer steps, {warmup_steps} warmup")
+    wk = warmup_kwargs(total_steps, t_cfg.get("warmup_ratio", 0.03),
+                       t_cfg.get("warmup_steps"))
+    log(f"schedule: ~{total_steps} optimizer steps, {wk['warmup_steps']} warmup")
 
     training_args = TrainingArguments(
+        **wk,
+        **length_grouping(t_cfg.get('group_by_length', True)),
+        **filter_kwargs({
+            'save_only_model': t_cfg.get('save_only_model', True),
+            'use_liger_kernel': t_cfg.get('use_liger_kernel', False),
+            'gradient_checkpointing_kwargs': {'use_reentrant': False},
+        }),
         output_dir=run_dir,
         num_train_epochs=t_cfg["epochs"],
         max_steps=args.max_steps if args.max_steps else -1,
@@ -314,7 +321,6 @@ def main():
         gradient_accumulation_steps=t_cfg.get("grad_accum_steps", 1),
         learning_rate=t_cfg["learning_rate"],
         lr_scheduler_type=t_cfg.get("lr_scheduler_type", "cosine"),
-        warmup_steps=warmup_steps,
         max_grad_norm=t_cfg.get("max_grad_norm", 1.0),
         logging_steps=t_cfg.get("logging_steps", 20),
         eval_strategy=t_cfg.get("eval_strategy", "steps"),
@@ -322,25 +328,11 @@ def main():
         save_strategy=t_cfg.get("save_strategy", "steps"),
         save_steps=t_cfg.get("save_steps", 500),
         save_total_limit=t_cfg.get("save_total_limit", 3),
-        save_only_model=t_cfg.get("save_only_model", True),
         fp16=torch.cuda.is_available(),
         gradient_checkpointing=t_cfg.get("gradient_checkpointing", False),
-        gradient_checkpointing_kwargs={"use_reentrant": False},
-        # transformers 5.x: group_by_length=True became this enum. Batches
-        # similar-length examples so step cost tracks actual length instead of
-        # max_seq_len; "length" is precomputed at tokenization time.
-        train_sampling_strategy=(
-            "group_by_length" if t_cfg.get("group_by_length", True) else "random"
-        ),
         length_column_name="length",
         remove_unused_columns=False,  # our collator picks its own keys; keeps "length" for the sampler
         optim=t_cfg.get("optim", "adamw_torch_fused"),
-        # Qwen3's 151,936-token vocab makes the logits tensor, not the model,
-        # the memory hog: at batch 8 x 1152 tokens that is ~2.8GB of fp16
-        # logits plus an fp32 upcast and a gradient. Liger's fused linear
-        # cross-entropy chunks it and never materializes the full tensor,
-        # which is what makes a larger batch fit at all.
-        use_liger_kernel=t_cfg.get("use_liger_kernel", False),
         dataloader_num_workers=t_cfg.get("dataloader_num_workers", 2),
         dataloader_pin_memory=True,
         ddp_find_unused_parameters=False,
