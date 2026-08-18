@@ -51,6 +51,11 @@ LOCAL_RANK = int(os.environ.get("LOCAL_RANK", -1))
 if LOCAL_RANK < 0:
     os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
 
+# Measured peak is 13.8GB of a T4's 14.56GB — 95% utilization for ~11 hours.
+# Allocator fragmentation alone could OOM the run late; expandable segments
+# let the allocator grow blocks in place instead of stranding them.
+os.environ.setdefault("PYTORCH_ALLOC_CONF", "expandable_segments:True")
+
 import numpy as np
 import pandas as pd
 import torch

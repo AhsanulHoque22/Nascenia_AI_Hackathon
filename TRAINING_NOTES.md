@@ -200,12 +200,44 @@ on a measurement error).
 The baseline was leaving ~88% of the T4 idle: 16×768 tokens/step at 18.4s
 works out to ~8.1 effective TFLOPS against the T4's 65 TFLOPS fp16 peak.
 
-| lever | effect | taken |
+### 4.1 What the calibration probe actually measured
+
+The predictions below were made for `max_seq_len=768`. We raised it to 1152
+for the reasons in §1.2, and that inverts the memory picture entirely. The
+Day 10 probe (`kaggle_kernels/day10_calibration/`) ran real optimizer steps
+on real data for each variant:
+
+| variant | s/step | ex/session | peak VRAM | result |
+|---|---|---|---|---|
+| 4-bit + checkpointing | **6.08** | **24,888** | 13.8 GB | works, fastest |
+| fp16 + checkpointing | 6.24 | 24,223 | 13.5 GB | works, slightly slower |
+| fp16, no checkpointing | — | — | — | **OOM** |
+| fp16, no ckpt, Liger | — | — | — | **OOM** |
+| Liger, batch 8 | — | — | — | **OOM** |
+
+**Both headline throughput levers were wrong for this configuration.**
+Dropping 4-bit did not buy 1.25–1.4x — it measured marginally *slower*.
+Dropping gradient checkpointing did not free memory we had spare — peak is
+already 13.8 GB of 14.56 GB *with* checkpointing, and every variant without
+it OOM'd. Liger did not rescue it.
+
+Measured capacity is **~24,900 examples per 10.5h session**, which matches
+the independent estimate extrapolated from measured Day 8 throughput and
+refutes the 68–82k theoretical figure. Config reverted accordingly: 4-bit
+ON, checkpointing ON, batch 4, no Liger.
+
+The lesson is the probe itself. A 35-minute measurement overturned two
+confident, well-cited theoretical recommendations that would each have
+crashed or wasted the one-shot run.
+
+### 4.2 Levers as originally analysed
+
+| lever | predicted | taken |
 |---|---|---|
-| Drop 4-bit → fp16 LoRA | **1.25–1.4x** | yes |
-| Drop gradient checkpointing | **1.25–1.4x** | yes |
-| Liger fused linear CE | 1.05–1.15x, **−4 to −9 GB** | yes |
-| Larger micro-batch, less grad_accum | 1.0–1.1x | yes |
+| Drop 4-bit → fp16 LoRA | 1.25–1.4x | **NO — measured no gain** |
+| Drop gradient checkpointing | 1.25–1.4x | **NO — measured OOM** |
+| Liger fused linear CE | 1.05–1.15x, −4 to −9 GB | **NO — still OOM'd** |
+| Larger micro-batch, less grad_accum | 1.0–1.1x | **NO — OOM at batch 8** |
 | Pre-tokenize + workers + pin_memory | 1.0–1.15x | yes |
 | `group_by_length` | matters once seq_len > 768 | yes |
 | 2× T4 DDP | 1.7–1.9x | probe-gated |

@@ -3,10 +3,14 @@
 # Every value below traces to a measurement or a cited ablation — see
 # TRAINING_NOTES.md. The load-bearing decisions:
 #
-#   load_in_4bit: false   NF4 dequantizes on FP32 CUDA cores (8.1 TFLOPS on a
-#                         T4) before every fp16 tensor-core matmul — a 20-40%
-#                         throughput tax to save VRAM we have spare. Qwen3-1.7B
-#                         in fp16 is ~4.1GB of a 16GB card.
+#   load_in_4bit: true    MEASURED, against the theory. The prediction was that
+#                         dropping 4-bit buys 1.25-1.4x. The calibration probe
+#                         (day10) measured 6.08s/step with 4-bit vs 6.24s/step
+#                         without — no gain, marginally worse. And at seq 1152
+#                         peak VRAM is 13.8GB of 14.56GB WITH gradient
+#                         checkpointing, so the fp16 + no-checkpointing configs
+#                         all OOM'd. The throughput analysis assumed seq 768;
+#                         raising to 1152 inverts the memory picture.
 #   max_seq_len: 1152     At 768, responses (mean 674 tokens) crowd the prompt
 #                         down to ~64 tokens and 28.9% of rows lose the question
 #                         entirely. 1152 costs +37%/example and cuts that to
@@ -28,7 +32,7 @@ base_model: Qwen/Qwen3-1.7B
 attn_implementation: sdpa  # FlashAttention-2 needs sm_80+; T4 is sm_75
 
 quantization:
-  load_in_4bit: false
+  load_in_4bit: true   # measured: no throughput cost here, and the VRAM is needed
 
 lora:
   r: 32
@@ -40,7 +44,7 @@ lora:
 data:
   train_path: data/processed/train_curated.jsonl  # src/curate_train.py, 81,771 rows
   val_path: data/processed/val.jsonl
-  max_train_samples: null   # set from the calibration probe; null = all
+  max_train_samples: 24000  # measured capacity: 24,888 examples in 10.5h
   max_eval_samples: 200     # eval is for a loss curve, not the real metric
   min_prompt_tokens: 64     # drop rows whose response leaves less than this for the question
   tokenize_num_proc: 4
@@ -57,12 +61,13 @@ training:
   max_grad_norm: 1.0
   logging_steps: 25
   eval_strategy: steps
-  eval_steps: 400
+  eval_steps: 250
   save_strategy: steps
-  save_steps: 400           # multiple checkpoints -> pick the best by COMPOSITE, not loss
-  save_total_limit: 4
-  gradient_checkpointing: false
+  save_steps: 250           # ~1500 total steps; frequent saves mean an OOM or a
+                            # session timeout at hour 9 still leaves a usable model
+  save_total_limit: 5
+  gradient_checkpointing: true   # required: without it seq 1152 OOMs on a T4
   group_by_length: true
   optim: adamw_torch_fused
   dataloader_num_workers: 2
-  use_liger_kernel: true    # chunks the 151,936-vocab logits; enables the larger batch
+  use_liger_kernel: false   # probe: did not prevent the OOM at seq 1152
