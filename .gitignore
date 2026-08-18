@@ -34,3 +34,6 @@ phase2_package/weights/
 # Mirror of data/processed/ used only to upload as a private Kaggle dataset
 # (regenerate with: cp data/processed/*.jsonl kaggle_dataset_processed/)
 kaggle_dataset_processed/
+
+# Orchestrator staging dir for the adapter upload (regenerated each shard)
+kaggle_adapter/

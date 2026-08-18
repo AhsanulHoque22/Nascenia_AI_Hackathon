@@ -78,9 +78,10 @@ from transformers import (
 )
 
 # ============================ SESSION CONTROL ============================
-SHARD_INDEX = 0        # bump per session: 0,1,2,3,4
+SHARD_INDEX = 0        # driven by src/run_chain.py; bump per session
 N_SHARDS = 5
-RESUME_DATASET = None  # e.g. "/kaggle/input/nascenia-adapter" for sessions 1+
+RESUME = False         # True for sessions 1+; the adapter is found by glob
+                       # because Kaggle's mount path varies by dataset form
 # =========================================================================
 
 DATA_DIR = "/kaggle/input/datasets/ahsanulhoque48cu/nascenia-processed-data"
@@ -104,7 +105,7 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
 print(f"GPU: {torch.cuda.get_device_name(0)}", flush=True)
 print(f"transformers {transformers.__version__}", flush=True)
-print(f"SHARD {SHARD_INDEX}/{N_SHARDS}  resume={RESUME_DATASET}", flush=True)
+print(f"SHARD {SHARD_INDEX}/{N_SHARDS}  resume={RESUME}", flush=True)
 
 SYSTEM_PROMPT = (
     "আপনি একজন অভিজ্ঞ চিকিৎসক। একজন রোগী তার শারীরিক সমস্যা সম্পর্কে "
@@ -268,10 +269,15 @@ model.config.use_cache = False
 model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 
 resume_dir = None
-if RESUME_DATASET:
-    hits = glob.glob(f"{RESUME_DATASET}/**/adapter_config.json", recursive=True)
+if RESUME:
+    # Search all mounted inputs rather than a fixed path: Kaggle mounts
+    # datasets at both /kaggle/input/<slug> and
+    # /kaggle/input/datasets/<user>/<slug> depending on how they were added.
+    hits = [h for h in glob.glob("/kaggle/input/**/adapter_config.json", recursive=True)]
     if not hits:
-        raise SystemExit(f"RESUME_DATASET set but no adapter under {RESUME_DATASET}")
+        raise SystemExit(
+            "RESUME=True but no adapter_config.json under /kaggle/input; "
+            f"mounted: {glob.glob('/kaggle/input/*')}")
     resume_dir = os.path.dirname(sorted(hits)[0])
 
 if resume_dir:
@@ -359,6 +365,5 @@ print(f"\nSHARD {SHARD_INDEX} DONE in {elapsed/3600:.2f}h — {result.global_ste
 print(f"cumulative dataset coverage: ~{rows_done:,}/{len(full):,} rows "
       f"({100*rows_done/len(full):.0f}%)")
 print(f"adapter: {adapter_dir}")
-print(f"\nNEXT: upload this adapter as a dataset, then re-push with "
-      f"SHARD_INDEX={SHARD_INDEX+1} and RESUME_DATASET set to it."
+print(f"\nNEXT: shard {SHARD_INDEX+1} (src/run_chain.py handles this)"
       if SHARD_INDEX + 1 < N_SHARDS else "\nAll shards complete — full epoch done.")
