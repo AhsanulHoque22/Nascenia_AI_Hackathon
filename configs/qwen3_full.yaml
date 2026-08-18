@@ -1,0 +1,68 @@
+# The one-shot full fine-tune. Kaggle T4, single ~11h session.
+#
+# Every value below traces to a measurement or a cited ablation — see
+# TRAINING_NOTES.md. The load-bearing decisions:
+#
+#   load_in_4bit: false   NF4 dequantizes on FP32 CUDA cores (8.1 TFLOPS on a
+#                         T4) before every fp16 tensor-core matmul — a 20-40%
+#                         throughput tax to save VRAM we have spare. Qwen3-1.7B
+#                         in fp16 is ~4.1GB of a 16GB card.
+#   max_seq_len: 1152     At 768, responses (mean 674 tokens) crowd the prompt
+#                         down to ~64 tokens and 28.9% of rows lose the question
+#                         entirely. 1152 costs +37%/example and cuts that to
+#                         4.6%.
+#   r: 32                 Bengali + medical register is a double distribution
+#                         shift, the regime where adapter capacity binds. ~2-4%
+#                         step cost. alpha=2r keeps the LR valid.
+#   epochs: 1             At fixed compute, unique examples beat repeats, and a
+#                         single pass has no epoch-2 overfitting cliff to fall
+#                         off with no second attempt.
+#   NO neftune            Its own paper (Fig. 5) shows it LOWERS ROUGE-L/BLEU
+#                         vs ground truth. Every reported gain is LLM-judge
+#                         win-rate. It optimizes the opposite of our metric.
+#   NO rslora             Benefit is at r>=128; at r=32 it would silently jump
+#                         the update scale 2.0 -> 11.3 and invalidate the LR.
+seed: 42
+
+base_model: Qwen/Qwen3-1.7B
+attn_implementation: sdpa  # FlashAttention-2 needs sm_80+; T4 is sm_75
+
+quantization:
+  load_in_4bit: false
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  use_rslora: false
+
+data:
+  train_path: data/processed/train_curated.jsonl  # src/curate_train.py, 81,771 rows
+  val_path: data/processed/val.jsonl
+  max_train_samples: null   # set from the calibration probe; null = all
+  max_eval_samples: 200     # eval is for a loss curve, not the real metric
+  min_prompt_tokens: 64     # drop rows whose response leaves less than this for the question
+  tokenize_num_proc: 4
+
+training:
+  max_seq_len: 1152
+  epochs: 1
+  batch_size: 4
+  eval_batch_size: 4
+  grad_accum_steps: 4       # effective batch 16
+  learning_rate: 0.0002
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  max_grad_norm: 1.0
+  logging_steps: 25
+  eval_strategy: steps
+  eval_steps: 400
+  save_strategy: steps
+  save_steps: 400           # multiple checkpoints -> pick the best by COMPOSITE, not loss
+  save_total_limit: 4
+  gradient_checkpointing: false
+  group_by_length: true
+  optim: adamw_torch_fused
+  dataloader_num_workers: 2
+  use_liger_kernel: true    # chunks the 151,936-vocab logits; enables the larger batch

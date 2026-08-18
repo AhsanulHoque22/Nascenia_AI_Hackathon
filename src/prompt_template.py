@@ -42,7 +42,8 @@ def build_messages(patient_input: str, doctor_output: str | None = None):
     return messages
 
 
-def build_example(tokenizer, patient_input: str, doctor_output: str, max_seq_len: int):
+def build_example(tokenizer, patient_input: str, doctor_output: str, max_seq_len: int,
+                  min_prompt_tokens: int = 0):
     """
     Tokenize one (patient_input, doctor_output) pair for SFT.
 
@@ -50,8 +51,17 @@ def build_example(tokenizer, patient_input: str, doctor_output: str, max_seq_len
     prompt + response exceeds max_seq_len, the prompt is truncated from the
     left (oldest tokens first) to make room.
 
-    Returns dict with input_ids / attention_mask / labels (prompt span
-    masked to -100), all unpadded — padding happens in the collator.
+    That left-truncation is far more damaging than it looks. Measured on this
+    corpus (Qwen3 tokenizer): responses average 674 tokens and inputs 467, so
+    at max_seq_len=768 the prompt is squeezed down to ~64 tokens — the model
+    trains on the tail of the question and the whole answer, and only 7.3% of
+    examples fit untruncated. `min_prompt_tokens` guards against that: an
+    example whose prompt would be cut below it is flagged `keep=False` so the
+    caller can drop it instead of training on a decapitated question.
+
+    Returns input_ids / attention_mask / labels (prompt span masked to -100),
+    unpadded — padding happens in the collator — plus `keep` and `n_tokens`
+    for filtering and length-grouping.
     """
     prompt_text = tokenizer.apply_chat_template(
         build_messages(patient_input), tokenize=False, add_generation_prompt=True,
@@ -62,20 +72,24 @@ def build_example(tokenizer, patient_input: str, doctor_output: str, max_seq_len
     prompt_ids = tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
     response_ids = tokenizer(response_text, add_special_tokens=False)["input_ids"]
 
+    keep = True
     max_prompt_len = max_seq_len - len(response_ids)
-    if max_prompt_len < 1:
-        # Response alone doesn't fit in max_seq_len (rare/edge case) —
-        # hard-truncate the response too rather than drop the example.
-        response_ids = response_ids[:max_seq_len]
-        prompt_ids = []
-    elif len(prompt_ids) > max_prompt_len:
+    if max_prompt_len < min_prompt_tokens:
+        # Response is so long it leaves no usable room for the question.
+        keep = False
+        max_prompt_len = max(max_prompt_len, 1)
+    if len(prompt_ids) > max_prompt_len:
         prompt_ids = prompt_ids[-max_prompt_len:]
+    response_ids = response_ids[:max_seq_len - len(prompt_ids)]
 
     input_ids = prompt_ids + response_ids
     labels = [-100] * len(prompt_ids) + list(response_ids)
     attention_mask = [1] * len(input_ids)
 
-    return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}
+    return {
+        "input_ids": input_ids, "attention_mask": attention_mask, "labels": labels,
+        "keep": keep, "n_tokens": len(input_ids),
+    }
 
 
 def build_inference_prompt(tokenizer, patient_input: str) -> str:

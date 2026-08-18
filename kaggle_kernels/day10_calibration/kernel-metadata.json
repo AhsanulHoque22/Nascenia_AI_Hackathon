@@ -1,0 +1,14 @@
+{
+  "id": "ahsanulhoque48cu/nascenia-day10-calibration",
+  "title": "nascenia-day10-calibration",
+  "code_file": "script.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_internet": true,
+  "dataset_sources": ["ahsanulhoque48cu/nascenia-processed-data"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
