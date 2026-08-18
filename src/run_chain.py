@@ -286,9 +286,79 @@ def do_submit(st):
                 f"{os.path.basename(r['checkpoint'])}")
 
 
+def step_once(st, max_shards):
+    """One non-blocking pass. Designed for cron (GitHub Actions): look at the
+    world, take at most one action, exit. Never waits on a running kernel,
+    because a scheduled job cannot sit for the ~7h a shard takes.
+
+    Returns a short status string for the workflow log.
+    """
+    shard = st["shard"]
+    if shard >= min(max_shards, N_SHARDS):
+        if st.get("phase") == "done":
+            return "chain already complete"
+        do_submit(st)
+        st["phase"] = "done"
+        save_state(st)
+        return "submission generated"
+
+    status = kernel_status(TRAIN_KERNEL)
+
+    # Nothing pushed for this shard yet -> push it.
+    if st.get("pushed_shard") != shard:
+        if status == "RUNNING":
+            return f"kernel busy with earlier work; waiting before pushing shard {shard}"
+        set_kernel_vars(shard, shard > 0)
+        run(f"kaggle kernels push -p {TRAIN_DIR}")
+        st["pushed_shard"] = shard
+        save_state(st)
+        return f"pushed shard {shard}"
+
+    if status == "RUNNING":
+        return f"shard {shard} still running"
+
+    if status != "COMPLETE":
+        out_dir = f"/tmp/chain_shard{shard}"
+        dump_kernel_log(TRAIN_KERNEL, out_dir)
+        raise RuntimeError(f"shard {shard} ended {status}")
+
+    # Completed -> harvest the adapter, publish it, advance the counter. The
+    # NEXT invocation pushes the next shard, keeping each run short.
+    out_dir = f"/tmp/chain_shard{shard}"
+    shutil.rmtree(out_dir, ignore_errors=True)
+    run(f"kaggle kernels output {TRAIN_KERNEL} -p {out_dir}")
+    hits = [os.path.join(r, "adapter_config.json")
+            for r, _, fs in os.walk(out_dir) if "adapter_config.json" in fs]
+    finals = [h for h in hits if "adapter_final" in h] or sorted(hits)
+    if not finals:
+        raise RuntimeError(f"shard {shard} COMPLETE but no adapter in {out_dir}")
+
+    metrics = {}
+    mp = [os.path.join(r, "metrics.json") for r, _, fs in os.walk(out_dir)
+          if "metrics.json" in fs]
+    if mp:
+        with open(mp[0]) as f:
+            metrics = json.load(f)
+
+    publish_adapter(os.path.dirname(finals[0]))
+    st["history"].append({
+        "shard": shard, "finished": datetime.now().isoformat(timespec="seconds"),
+        "train_loss": metrics.get("train_loss"), "steps": metrics.get("steps"),
+        "hours": round(metrics.get("train_time_s", 0) / 3600, 2),
+        "coverage": metrics.get("rows_covered_cumulative"),
+    })
+    st["shard"] = shard + 1
+    st["pushed_shard"] = None
+    save_state(st)
+    return (f"shard {shard} COMPLETE (loss {metrics.get('train_loss')}, "
+            f"{round(metrics.get('train_time_s', 0)/3600, 2)}h) -> advanced to {shard+1}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--status", action="store_true")
+    ap.add_argument("--once", action="store_true",
+                    help="single non-blocking step, for cron/CI")
     ap.add_argument("--max-shards", type=int, default=N_SHARDS,
                     help="stop after this many shards (quota control)")
     ap.add_argument("--skip-submit", action="store_true")
@@ -298,6 +368,18 @@ def main():
     if args.status:
         print(json.dumps(st, indent=2))
         print(f"\ntrain kernel: {kernel_status(TRAIN_KERNEL)}")
+        return
+
+    if args.once:
+        # No lock: CI runs are serialised by the workflow's concurrency group,
+        # and a lock file would not survive between fresh containers anyway.
+        try:
+            log(step_once(st, args.max_shards))
+        except Exception as e:
+            st["phase"] = f"failed: {e}"
+            save_state(st)
+            log(f"CHAIN HALTED: {e}")
+            sys.exit(1)
         return
 
     acquire_lock()

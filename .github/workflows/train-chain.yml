@@ -1,0 +1,85 @@
+name: training chain
+
+# Advances the sharded fine-tuning chain without needing a laptop on.
+#
+# Each run is deliberately SHORT and non-blocking: it looks at the Kaggle
+# kernel, takes at most one action (push a shard / harvest a finished adapter
+# / generate the submission), and exits. A scheduled job cannot sit for the
+# ~7h a shard takes, and GitHub caps a job at 6h anyway.
+#
+# State lives in experiments/chain_state.json and is committed back after
+# every advance, because each run starts in a fresh container with no memory
+# of the last one.
+
+on:
+  schedule:
+    - cron: "0 * * * *"      # hourly; see NOTE on Actions minutes below
+  workflow_dispatch:          # manual "Run workflow" button
+    inputs:
+      max_shards:
+        description: "stop after this many shards (quota control)"
+        default: "5"
+
+# Never let two runs advance the chain at once — they would both push the
+# next shard and race on the adapter dataset.
+concurrency:
+  group: training-chain
+  cancel-in-progress: false
+
+permissions:
+  contents: write             # needed to commit state back
+
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: install kaggle cli
+        run: pip install --quiet kaggle
+
+      - name: advance the chain
+        env:
+          # Single secret: the contents of ~/.kaggle/access_token.
+          # The Kaggle SDK reads this env var directly.
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          MAX_SHARDS: ${{ github.event.inputs.max_shards || '5' }}
+        run: |
+          if [ -z "$KAGGLE_API_TOKEN" ]; then
+            echo "::error::KAGGLE_API_TOKEN secret is not set"
+            exit 1
+          fi
+          python src/run_chain.py --once --max-shards "$MAX_SHARDS" | tee /tmp/step.log
+          echo "### $(tail -1 /tmp/step.log)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: commit state
+        if: always()
+        run: |
+          git config user.name  "training-chain[bot]"
+          git config user.email "actions@github.com"
+          git add experiments/chain_state.json kaggle_kernels/day11_train/ || true
+          # Most runs change nothing (shard still training) — only commit real advances.
+          if git diff --cached --quiet; then
+            echo "no state change"
+          else
+            git commit -m "chain: $(python -c "import json;s=json.load(open('experiments/chain_state.json'));print(f\"shard {s['shard']}, {len(s['history'])} done\")")"
+            git push
+          fi
+
+      - name: retrieve submission
+        if: success()
+        run: |
+          if [ -f submissions/submission.csv ]; then
+            echo "submission.csv present"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: hashFiles('submissions/submission.csv') != ''
+        with:
+          name: submission
+          path: submissions/
