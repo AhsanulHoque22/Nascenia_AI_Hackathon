@@ -39,6 +39,13 @@ import sys
 import time
 from datetime import datetime
 
+# The script shells out to the `kaggle` CLI, which lives in the venv's bin
+# dir. Put that dir on PATH explicitly, derived from the running interpreter,
+# so this works whether launched as `python src/run_chain.py` with the venv
+# activated, as `venv/bin/python src/run_chain.py` without activating, or
+# from a shell (fish, etc.) that never sourced activate at all.
+os.environ["PATH"] = os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", "")
+
 USER = "ahsanulhoque48cu"
 TRAIN_KERNEL = f"{USER}/nascenia-day11-train"
 SUBMIT_KERNEL = f"{USER}/nascenia-day11-select-submit"
@@ -52,6 +59,37 @@ STATE_PATH = "experiments/chain_state.json"
 N_SHARDS = 5
 POLL_S = 300                              # 5 min; shards run ~7h
 DATASET_WAIT_S = 30
+
+
+LOCK_PATH = "experiments/chain.lock"
+
+
+def acquire_lock():
+    """Exactly one orchestrator at a time.
+
+    Two copies running (say one inside a Claude session and one in a terminal)
+    would both push shard N+1 and race on the adapter dataset. A stale lock
+    from a killed process is detected by checking whether that PID is alive,
+    so a crash does not require manual cleanup.
+    """
+    os.makedirs(os.path.dirname(LOCK_PATH), exist_ok=True)
+    if os.path.exists(LOCK_PATH):
+        try:
+            with open(LOCK_PATH) as f:
+                old_pid = int(f.read().strip())
+            os.kill(old_pid, 0)          # signal 0 = liveness probe only
+        except (ValueError, ProcessLookupError, PermissionError):
+            log("removing stale lock")
+            os.remove(LOCK_PATH)
+        else:
+            raise SystemExit(
+                f"another orchestrator is already running (pid {old_pid}).\n"
+                f"Stop it first, or remove {LOCK_PATH} if you know it is dead."
+            )
+    with open(LOCK_PATH, "w") as f:
+        f.write(str(os.getpid()))
+    import atexit
+    atexit.register(lambda: os.path.exists(LOCK_PATH) and os.remove(LOCK_PATH))
 
 
 def log(msg):
@@ -262,6 +300,7 @@ def main():
         print(f"\ntrain kernel: {kernel_status(TRAIN_KERNEL)}")
         return
 
+    acquire_lock()
     log(f"chain starting at shard {st['shard']} (target {args.max_shards} shards)")
     try:
         while st["shard"] < min(args.max_shards, N_SHARDS):
