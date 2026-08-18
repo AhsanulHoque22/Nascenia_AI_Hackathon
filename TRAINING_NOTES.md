@@ -147,10 +147,28 @@ Measured on 200–300 val rows:
 |---|---|---|
 | ours (Qwen3-1.7B zero-shot, 200-token cap) | 0.388 | **0.504** |
 | 1-NN TF-IDF retrieval from train | 0.571 | ~0.56 |
-| **one fixed Bengali reply, same for all 1000 rows** | **0.633** | **~0.60** |
+| **one fixed Bengali reply, same for all 1000 rows** | **0.614** | **0.584** |
 
-A constant string beats our model, purely on length and format. **~0.60 is
+A constant string beats our model, purely on length and format. **0.584 is
 the floor, not the target.**
+
+Measured directly (`src/constant_baseline.py`, medoid of the reference
+distribution, scored on a held-out 300-row val slice disjoint from the one it
+was selected on):
+
+| | regex tokenization | whitespace tokenization |
+|---|---|---|
+| BERTScore F1 | 0.6865 | 0.6865 |
+| Token-F1 | 0.6140 | 0.1491 |
+| ROUGE-L | 0.2837 | — |
+| **composite** | **0.5842** | **0.4071** |
+
+length ratio 1.09 — just inside the measured plateau.
+
+**That 0.177 spread between tokenizations is the whole calibration problem in
+one number.** Submitting this exact file and comparing the leaderboard score
+against both figures identifies which implementation the organizers use, and
+therefore what every subsequent local measurement actually means.
 
 ---
 
