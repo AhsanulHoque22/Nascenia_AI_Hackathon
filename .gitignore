@@ -14,6 +14,10 @@ data/external/*
 experiments/*/
 !experiments/.gitkeep
 
+# Analysis outputs that embed raw competition data (rulebook S2 forbids
+# redistribution; S10 notes winners may be asked to open-source their code)
+experiments/test_train_overlap.csv
+
 # Kaggle submissions
 submissions/*.csv
 

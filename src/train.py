@@ -23,6 +23,12 @@ import os
 import random
 import time
 
+# Kaggle T4 sessions sometimes allocate 2 GPUs; device_map="auto" would then
+# shard the model across both, which breaks Trainer's forward pass with a
+# cuda:0/cuda:1 device-mismatch error under bitsandbytes 4-bit quantization.
+# This repo has no multi-GPU (DDP) setup, so pin to a single GPU always.
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
+
 import numpy as np
 import pandas as pd
 import torch

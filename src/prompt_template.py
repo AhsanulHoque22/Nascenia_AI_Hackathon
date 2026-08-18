@@ -16,6 +16,12 @@ only on the response span; the prompt span is masked with -100.
 
 SYSTEM_PROMPT is unchanged from kaggle_kernels/model_shortlist/script.py
 (Day 6 zero-shot eval) so baseline and fine-tuned numbers stay comparable.
+
+enable_thinking=False is passed to apply_chat_template for Qwen3's hybrid
+think/no-think template (Day 9 model swap to Qwen3-1.7B) — this task needs a
+direct response, not a <think>...</think> reasoning block, and it wastes
+generation budget otherwise. Qwen2.5's template silently ignores unknown
+kwargs, so this is safe for both model families.
 """
 
 SYSTEM_PROMPT = (
@@ -48,7 +54,8 @@ def build_example(tokenizer, patient_input: str, doctor_output: str, max_seq_len
     masked to -100), all unpadded — padding happens in the collator.
     """
     prompt_text = tokenizer.apply_chat_template(
-        build_messages(patient_input), tokenize=False, add_generation_prompt=True
+        build_messages(patient_input), tokenize=False, add_generation_prompt=True,
+        enable_thinking=False,
     )
     response_text = doctor_output + tokenizer.eos_token
 
@@ -74,5 +81,6 @@ def build_example(tokenizer, patient_input: str, doctor_output: str, max_seq_len
 def build_inference_prompt(tokenizer, patient_input: str) -> str:
     """Prompt string to feed the model at inference (no response turn)."""
     return tokenizer.apply_chat_template(
-        build_messages(patient_input), tokenize=False, add_generation_prompt=True
+        build_messages(patient_input), tokenize=False, add_generation_prompt=True,
+        enable_thinking=False,
     )
