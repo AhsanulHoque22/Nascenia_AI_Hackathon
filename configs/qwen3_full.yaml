@@ -44,7 +44,10 @@ lora:
 data:
   train_path: data/processed/train_curated.jsonl  # src/curate_train.py, 81,771 rows
   val_path: data/processed/val.jsonl
-  max_train_samples: 24000  # measured capacity: 24,888 examples in 10.5h
+  max_train_samples: 18000  # ~7.6h at the measured 0.658 ex/s. Capacity is
+                            # ~24,900 but that consumes the entire session and
+                            # leaves nothing for merge/inference/recovery
+                            # against a HARD 12h kill.
   max_eval_samples: 200     # eval is for a loss curve, not the real metric
   min_prompt_tokens: 64     # drop rows whose response leaves less than this for the question
   tokenize_num_proc: 4
@@ -60,12 +63,17 @@ training:
   warmup_ratio: 0.03
   max_grad_norm: 1.0
   logging_steps: 25
-  eval_strategy: steps
-  eval_steps: 250
+  # No eval loop: checkpoints are selected by COMPOSITE score in a separate
+  # session, not by val loss, so an eval forward pass here would only add a
+  # fresh OOM opportunity at 13.8/14.56GB in exchange for a number we discard.
+  eval_strategy: "no"
   save_strategy: steps
   save_steps: 250           # ~1500 total steps; frequent saves mean an OOM or a
                             # session timeout at hour 9 still leaves a usable model
   save_total_limit: 5
+  save_only_model: true   # skip optimizer state; we never resume, and it doubles checkpoint size
+  max_hours: 8.5          # hard stop well inside Kaggle's 12h kill, which does
+                          # not reliably persist /kaggle/working
   gradient_checkpointing: true   # required: without it seq 1152 OOMs on a T4
   group_by_length: true
   optim: adamw_torch_fused

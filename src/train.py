@@ -104,6 +104,28 @@ class AbortOnNaN(TrainerCallback):
             )
 
 
+class StopAfterHours(TrainerCallback):
+    """
+    Kaggle kills a GPU session at 12h with no grace period, and a killed
+    kernel does not reliably persist /kaggle/working. Stopping ourselves
+    early turns "lost the whole run" into "finished slightly short", and
+    Trainer still runs its normal save/return path.
+    """
+
+    def __init__(self, hours):
+        self.limit_s = hours * 3600
+        self.t0 = time.time()
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if time.time() - self.t0 > self.limit_s:
+            elapsed = (time.time() - self.t0) / 3600
+            print(f"\n*** wall-clock limit hit at {elapsed:.2f}h "
+                  f"(step {state.global_step}) — saving and stopping ***", flush=True)
+            control.should_training_stop = True
+            control.should_save = True
+        return control
+
+
 class PadCollator:
     """Dynamic per-batch padding (input_ids/attention_mask/labels)."""
 
@@ -300,6 +322,7 @@ def main():
         save_strategy=t_cfg.get("save_strategy", "steps"),
         save_steps=t_cfg.get("save_steps", 500),
         save_total_limit=t_cfg.get("save_total_limit", 3),
+        save_only_model=t_cfg.get("save_only_model", True),
         fp16=torch.cuda.is_available(),
         gradient_checkpointing=t_cfg.get("gradient_checkpointing", False),
         gradient_checkpointing_kwargs={"use_reentrant": False},
@@ -325,13 +348,17 @@ def main():
         seed=seed,
     )
 
+    callbacks = [AbortOnNaN()]
+    if t_cfg.get("max_hours"):
+        callbacks.append(StopAfterHours(t_cfg["max_hours"]))
+
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_ds,
         eval_dataset=eval_ds,
         data_collator=collator,
-        callbacks=[AbortOnNaN()],
+        callbacks=callbacks,
     )
 
     t0 = time.time()

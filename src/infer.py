@@ -12,6 +12,10 @@ Two things here are worth more than any training hyperparameter:
    ~0.7%. So aim ABOVE the reference median, and put a floor under it with
    min_new_tokens. BERTScore F1 is length-normalized and barely moves, so
    length is tuned purely for Token-F1 and ROUGE-L, which peak together.
+   Sizing the floor: Bengali runs ~1.06 tokens/char, so the 750-char optimum
+   is ~790 tokens and min_new_tokens=650 (~613 chars) sits just inside the
+   plateau. An earlier value of 400 was wrong — that is only ~377 chars,
+   squarely in the catastrophic under-generation zone.
 
 2. BATCHING. 1,000 test rows x ~900 tokens unbatched on a T4 is ~8 hours.
    Batched with left-padding and length-sorted batches it is ~30-45 minutes.
@@ -111,7 +115,7 @@ def main():
     ap.add_argument("--out", default=None, help="CSV path to write")
     ap.add_argument("--batch_size", type=int, default=16)
     ap.add_argument("--max_new_tokens", type=int, default=900)
-    ap.add_argument("--min_new_tokens", type=int, default=400)
+    ap.add_argument("--min_new_tokens", type=int, default=650)
     ap.add_argument("--repetition_penalty", type=float, default=1.05)
     ap.add_argument("--no_repeat_ngram_size", type=int, default=6)
     ap.add_argument("--temperature", type=float, default=0.0,
