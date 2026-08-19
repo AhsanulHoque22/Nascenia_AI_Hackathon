@@ -184,8 +184,14 @@ def publish_adapter(local_adapter_dir):
     with open(f"{ADAPTER_STAGE}/dataset-metadata.json", "w") as f:
         json.dump(meta, f)
 
-    exists = "not found" not in run(f"kaggle datasets status {ADAPTER_DATASET}",
-                                    check=False).lower()
+    # A dataset that does not exist yet returns "403 Client Error: Forbidden"
+    # from `datasets status`, NOT a string containing "not found" — checking
+    # for "not found" therefore misreads the common case (first-ever publish)
+    # as "already exists" and calls `datasets version` on something that was
+    # never created, which fails. Only treat it as existing when the status
+    # call actually reports a real dataset state.
+    status_out = run(f"kaggle datasets status {ADAPTER_DATASET}", check=False).lower()
+    exists = any(s in status_out for s in ("ready", "processing", "error(", "queued"))
     if exists:
         log("publishing new adapter dataset version")
         run(f'kaggle datasets version -p {ADAPTER_STAGE} -m "shard chain" -d')
