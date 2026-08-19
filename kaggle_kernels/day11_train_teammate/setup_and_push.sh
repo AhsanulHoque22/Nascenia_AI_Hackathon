@@ -33,6 +33,9 @@ fi
 
 sed -i.bak "s/^SHARD_INDEX = .*/SHARD_INDEX = ${SHARD}   # set by setup_and_push.sh/" script.py
 sed -i.bak "s#\"id\": \".*\"#\"id\": \"${USERNAME}/nascenia-day11-shard-${SHARD}\"#" kernel-metadata.json
+# "title" must also match, or Kaggle can reject the push with a 409 conflict
+# (found the hard way: a stale placeholder title caused exactly this).
+sed -i.bak "s#\"title\": \".*\"#\"title\": \"nascenia-day11-shard-${SHARD}\"#" kernel-metadata.json
 rm -f script.py.bak kernel-metadata.json.bak
 
 echo "Checking access to the training dataset..."
