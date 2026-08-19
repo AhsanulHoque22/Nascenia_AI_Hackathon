@@ -35,6 +35,18 @@ Either clone the team repo, or just grab these two files from the team lead:
 
 Put them in a folder together, e.g. `my_shard/`.
 
+## Shortcut: one command instead of steps 4-6's manual edits
+
+Once step 2 is done (your token in place), you can skip straight to:
+
+```bash
+./setup_and_push.sh <your-kaggle-username> <your-shard-number>
+```
+
+It makes both edits and pushes for you, then prints the exact commands
+you'll need once it finishes. Steps 4-6 below are what it's doing, spelled
+out, in case you'd rather do it by hand or something needs debugging.
+
 ## 4. Edit exactly two things
 
 **`script.py`**, near the top:
