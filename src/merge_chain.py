@@ -89,8 +89,25 @@ def save_state(st):
 
 
 def dataset_ready(ref):
+    """For datasets THIS account owns. `datasets status` correctly reports
+    Kaggle's async processing state (ready/processing/error) for those --
+    needed because a freshly-created version isn't immediately mountable."""
     out = run(f"kaggle datasets status {ref}", check=False).lower()
     return "ready" in out
+
+
+def teammate_dataset_ready(ref):
+    """For datasets a TEAMMATE owns and shared with us. `datasets status`
+    404s here even with valid access -- confirmed live: it apparently only
+    resolves for datasets you own, not ones shared with you as a
+    collaborator. `datasets files` actually requires read access to
+    succeed, so it's the real check for non-owned datasets (same fix as
+    setup_and_push.sh's access check). Checked by exit code, not string
+    content, since output content on success isn't a fixed format.
+    """
+    r = subprocess.run(f"kaggle datasets files {ref}", shell=True,
+                        capture_output=True, timeout=120)
+    return r.returncode == 0
 
 
 OWN_CHAIN_STATE = "experiments/chain_state.json"
@@ -121,7 +138,7 @@ def teammates_ready():
     result = {}
     for shard, username in TEAMMATES.items():
         ref = f"{username}/nascenia-shard-{shard}-adapter"
-        result[shard] = (username, ref, dataset_ready(ref))
+        result[shard] = (username, ref, teammate_dataset_ready(ref))
     return result
 
 
