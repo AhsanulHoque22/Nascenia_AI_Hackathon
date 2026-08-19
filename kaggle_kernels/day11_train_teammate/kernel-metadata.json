@@ -1,6 +1,6 @@
 {
-  "id": "ahsanulhoque48cu/nascenia-day11-train",
-  "title": "nascenia-day11-train",
+  "id": "REPLACE-WITH-YOUR-KAGGLE-USERNAME/nascenia-day11-shard-N",
+  "title": "nascenia-day11-shard-N",
   "code_file": "script.py",
   "language": "python",
   "kernel_type": "script",
@@ -8,10 +8,7 @@
   "enable_gpu": true,
   "machine_shape": "NvidiaTeslaT4",
   "enable_internet": true,
-  "dataset_sources": [
-    "ahsanulhoque48cu/nascenia-processed-data",
-    "ahsanulhoque48cu/nascenia-adapter"
-  ],
+  "dataset_sources": ["ahsanulhoque48cu/nascenia-processed-data"],
   "competition_sources": [],
   "kernel_sources": []
 }
