@@ -1,5 +1,8 @@
 # Training one shard on your own Kaggle account
 
+> In a hurry? Read `TEAMMATE_QUICKSTART.md` instead — same steps, no
+> explanation, just copy-paste. Come back here only if something breaks.
+
 You're training **one independent piece** of the team's model, in parallel
 with the other teammates, so we finish the full dataset in ~7 hours of wall
 clock instead of ~35. Each of you gets a different, non-overlapping slice —
