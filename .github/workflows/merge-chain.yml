@@ -1,0 +1,75 @@
+name: merge chain
+
+# Second half of the multi-account plan. While train-chain.yml advances your
+# own account's shard 0->1, this watches for all 3 teammates' adapters to be
+# shared back, then downloads everything, merges by weight-averaging, and
+# runs one scoring pass that ranks your own adapter + every teammate's +
+# the merge, by the real composite metric on held-out val — and generates
+# the submission with the winner. Never submits to the competition.
+#
+# Configure TEAMMATES in src/merge_chain.py (Kaggle usernames) before this
+# does anything useful — it exits early with a clear error until that's done.
+
+on:
+  schedule:
+    - cron: "15 * * * *"      # offset from train-chain.yml's :00 so they don't collide
+  workflow_dispatch: {}
+
+concurrency:
+  group: merge-chain
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: install deps
+        run: |
+          # torch from the CPU-only index (small; this runner has no GPU and
+          # the merge is pure tensor arithmetic, no model loading) --
+          # everything else from the DEFAULT index. A single command mixing
+          # --index-url with regular packages would restrict ALL of them to
+          # PyTorch's wheel index, where kaggle/pandas/safetensors don't exist.
+          pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet kaggle safetensors
+
+      - name: advance the merge chain
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: |
+          if [ -z "$KAGGLE_API_TOKEN" ]; then
+            echo "::error::KAGGLE_API_TOKEN secret is not set"
+            exit 1
+          fi
+          python src/merge_chain.py --once | tee /tmp/step.log
+          echo "### $(tail -1 /tmp/step.log)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: commit state
+        if: always()
+        run: |
+          git config user.name  "merge-chain[bot]"
+          git config user.email "actions@github.com"
+          git add experiments/merge_chain_state.json kaggle_kernels/day11_select_submit/ src/merge_chain.py || true
+          if git diff --cached --quiet; then
+            echo "no state change"
+          else
+            git commit -m "merge-chain: $(python -c "import json;s=json.load(open('experiments/merge_chain_state.json'));print(s.get('phase','?'))")"
+            git push
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: hashFiles('submissions/submission.csv') != ''
+        with:
+          name: submission
+          path: submissions/

@@ -71,15 +71,25 @@ so it won't blow past your session limit.
 
 ```bash
 kaggle kernels output your-username/nascenia-day11-shard-N -p ./out
+cat > ./out/run/adapter_final/dataset-metadata.json <<EOF
+{"title": "nascenia-shard-N-adapter", "id": "your-username/nascenia-shard-N-adapter", "licenses": [{"name": "CC-BY-NC-SA-4.0"}]}
+EOF
 kaggle datasets create -p ./out/run/adapter_final
 ```
+
+Replace `your-username` (both places) and the two `N`s with your actual
+username and shard number — **use exactly this naming**
+(`nascenia-shard-N-adapter`). The automation on the team lead's side polls
+for this exact dataset name, so a typo here means it never gets picked up
+automatically.
 
 This creates a new **private** Kaggle dataset under your account containing
 just the adapter (~140MB, not the training data). Share *that* dataset back
 with the team lead's Kaggle username the same way as step 1 (Settings →
 Sharing → Add collaborator).
 
-Tell the team lead it's ready — that's the whole handoff.
+That's the whole handoff — once it's shared, the team lead's automation
+picks it up on its own within the hour. No need to message anyone.
 
 ## If something errors
 
