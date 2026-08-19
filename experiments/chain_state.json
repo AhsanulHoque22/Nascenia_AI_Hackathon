@@ -1,6 +1,6 @@
 {
   "shard": 2,
-  "phase": "harvested shard 0 manually (Actions had a CLI-flag bug, now fixed)",
+  "phase": "own chain shards complete",
   "history": [
     {
       "shard": 0,
