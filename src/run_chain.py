@@ -305,12 +305,17 @@ def step_once(st, max_shards):
     """
     shard = st["shard"]
     if shard >= min(max_shards, N_SHARDS):
-        if st.get("phase") == "done":
-            return "chain already complete"
-        do_submit(st)
-        st["phase"] = "done"
-        save_state(st)
-        return "submission generated"
+        # Do NOT auto-submit here. do_submit() blocks on wait_for_kernel(),
+        # which can run for hours -- fatal in a 30-min-timeout cron job, and
+        # it kept getting killed mid-wait and re-pushed (restarting the
+        # select+submit kernel from scratch) on every following hourly tick.
+        # Final submission is merge_chain.py's job now (it waits for
+        # teammates' adapters too, not just this account's shards), so this
+        # branch is a pure stop condition.
+        if st.get("phase") != "own chain shards complete":
+            st["phase"] = "own chain shards complete"
+            save_state(st)
+        return "own chain shards complete; final submission handled by merge_chain.py"
 
     status = kernel_status(TRAIN_KERNEL)
 
