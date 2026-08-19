@@ -1,5 +1,5 @@
 {
-  "shard": 1,
+  "shard": 2,
   "phase": "harvested shard 0 manually (Actions had a CLI-flag bug, now fixed)",
   "history": [
     {
@@ -9,7 +9,15 @@
       "steps": 962,
       "hours": 6.79,
       "coverage": 16355
+    },
+    {
+      "shard": 1,
+      "finished": "2026-08-19T14:25:11",
+      "train_loss": 0.44777170734702,
+      "steps": 965,
+      "hours": 6.95,
+      "coverage": 32710
     }
   ],
-  "pushed_shard": 1
+  "pushed_shard": null
 }
