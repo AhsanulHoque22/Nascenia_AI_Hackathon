@@ -47,8 +47,8 @@ os.environ["PATH"] = os.path.dirname(sys.executable) + os.pathsep + os.environ.g
 # shard_index -> Kaggle username. Must match what each teammate set in
 # their own kernel-metadata.json and dataset-metadata.json.
 TEAMMATES = {
-    2: "REPLACE_ME_teammate_a_username",
-    3: "REPLACE_ME_teammate_b_username",
+    2: "sanzidislam",
+    3: "sanzid65",
     4: "REPLACE_ME_teammate_c_username",
 }
 # =====================================================================
