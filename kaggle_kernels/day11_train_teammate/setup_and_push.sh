@@ -36,8 +36,11 @@ sed -i.bak "s#\"id\": \".*\"#\"id\": \"${USERNAME}/nascenia-day11-shard-${SHARD}
 rm -f script.py.bak kernel-metadata.json.bak
 
 echo "Checking access to the training dataset..."
-if ! kaggle datasets status ahsanulhoque48cu/nascenia-processed-data | grep -q ready; then
-  echo "Can't see the dataset as ready yet. Has the team lead shared"
+# `datasets status` only resolves for datasets you own -- it 404s even with
+# valid shared access. `datasets files` actually requires read access to
+# succeed, so it's the real check here.
+if ! kaggle datasets files ahsanulhoque48cu/nascenia-processed-data >/dev/null 2>&1; then
+  echo "Can't access the dataset yet. Has the team lead shared"
   echo "ahsanulhoque48cu/nascenia-processed-data with your Kaggle username?"
   exit 1
 fi

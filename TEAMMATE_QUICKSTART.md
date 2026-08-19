@@ -67,5 +67,5 @@ within the hour.
 |---|---|
 | `kaggle: command not found` | `pip install kaggle`, then re-open your terminal |
 | "No Kaggle credentials found" | `kaggle.json` isn't at the right path — recheck Step 1.3 |
-| "Can't see the dataset as ready" | Team lead hasn't shared the dataset with your username yet (Step 2) |
+| "Can't access the dataset yet" | Team lead hasn't shared the dataset with your username yet (Step 2) |
 | Anything else | Send the team lead the exact command you ran + the exact error text. Don't retry blind — a wasted 7-hour GPU run is expensive on the free tier. |

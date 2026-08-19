@@ -26,8 +26,11 @@ Token**. This downloads `kaggle.json`. Put it at `~/.kaggle/kaggle.json`
 
 ```bash
 pip install kaggle
-kaggle datasets status ahsanulhoque48cu/nascenia-processed-data
-# should print "ready" — if it errors, step 1 hasn't gone through yet
+kaggle datasets files ahsanulhoque48cu/nascenia-processed-data
+# should list test.jsonl, train.jsonl, train_curated.jsonl, val.jsonl
+# if it errors, step 1 hasn't gone through yet
+# (don't use `kaggle datasets status` here -- it only works for datasets
+# you own, and 404s even with valid shared access; misleading)
 ```
 
 ## 3. Get the training script
