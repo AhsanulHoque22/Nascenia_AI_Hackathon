@@ -100,7 +100,11 @@ def run(cmd, check=True, capture=True):
     r = subprocess.run(cmd, shell=True, text=True,
                        capture_output=capture, timeout=3600)
     if check and r.returncode != 0:
-        raise RuntimeError(f"command failed: {cmd}\n{r.stdout}\n{r.stderr}")
+        # -q suppresses upload progress bars at the source now, but this cap
+        # is defense-in-depth: an uncapped failure message here is what
+        # bloated chain_state.json with a raw progress-bar dump twice already.
+        detail = (r.stdout or "") + (r.stderr or "")
+        raise RuntimeError(f"command failed: {cmd}\n{detail[-1500:]}")
     return (r.stdout or "") + (r.stderr or "")
 
 
@@ -194,10 +198,10 @@ def publish_adapter(local_adapter_dir):
     exists = any(s in status_out for s in ("ready", "processing", "error(", "queued"))
     if exists:
         log("publishing new adapter dataset version")
-        run(f'kaggle datasets version -p {ADAPTER_STAGE} -m "shard chain" -d')
+        run(f'kaggle datasets version -p {ADAPTER_STAGE} -m "shard chain" -d -q')
     else:
         log("creating adapter dataset")
-        run(f"kaggle datasets create -p {ADAPTER_STAGE} -d")
+        run(f"kaggle datasets create -p {ADAPTER_STAGE} -q")
 
     # Kaggle processes uploads asynchronously; mounting too early gives an
     # empty directory and the next shard would silently start from scratch.

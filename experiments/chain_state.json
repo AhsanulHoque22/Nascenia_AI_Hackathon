@@ -1,6 +1,15 @@
 {
-  "shard": 0,
-  "phase": "failed: command failed: kaggle datasets create -p kaggle_adapter -d\n\nusage: kaggle [-h] [-v] [-W]\n              {competitions,c,datasets,d,kernels,k,models,m,files,forums,f,benchmarks,b,config,auth,quota}\n              ...\nkaggle: error: unrecognized arguments: -d\n",
-  "history": [],
-  "pushed_shard": 0
+  "shard": 1,
+  "phase": "harvested shard 0 manually (Actions had a CLI-flag bug, now fixed)",
+  "history": [
+    {
+      "shard": 0,
+      "finished": "2026-08-19T12:40:07",
+      "train_loss": 0.5219686185000096,
+      "steps": 962,
+      "hours": 6.79,
+      "coverage": 16355
+    }
+  ],
+  "pushed_shard": null
 }
