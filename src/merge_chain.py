@@ -62,6 +62,15 @@ MERGE_STAGE = "kaggle_merged_adapter"
 STATE_PATH = "experiments/merge_chain_state.json"
 POLL_S = 300
 
+# Shard 4 is trained on the team lead's OWN account (the 3rd teammate never
+# started) via the same standalone kernel_kernels/day11_train_teammate
+# script/flow a real teammate would use -- but unlike a real teammate,
+# there's no human to run the manual harvest-and-publish handoff afterward.
+# ensure_own_shard4_published() below does that automatically.
+OWN_SHARD4_KERNEL = f"{USER}/nascenia-day11-shard-4"
+OWN_SHARD4_DATASET = f"{USER}/nascenia-shard-4-adapter"
+OWN_SHARD4_STAGE = "kaggle_shard4_adapter"
+
 
 def log(msg):
     print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
@@ -142,6 +151,45 @@ def teammates_ready():
     return result
 
 
+def ensure_own_shard4_published():
+    """Non-blocking, idempotent: once the shard-4 kernel (own account) is
+    COMPLETE, harvest its adapter and publish it as OWN_SHARD4_DATASET --
+    same handoff a teammate would do by hand, done here since no human is
+    going to run those commands for this one. Safe to call every tick:
+    returns immediately once already published or not yet done training."""
+    if teammate_dataset_ready(OWN_SHARD4_DATASET):
+        return "shard4 adapter already published"
+
+    status = run(f"kaggle kernels status {OWN_SHARD4_KERNEL}", check=False)
+    if "COMPLETE" not in status:
+        return "shard4 kernel not finished yet"
+
+    # Same 403-vs-not-found trap as run_chain.py's publish_adapter(): a
+    # dataset that was already created (e.g. an earlier tick) but is still
+    # processing must NOT be re-created.
+    status_out = run(f"kaggle datasets status {OWN_SHARD4_DATASET}", check=False).lower()
+    if any(s in status_out for s in ("ready", "processing", "error(", "queued")):
+        return "shard4 dataset already created, waiting on Kaggle processing"
+
+    out_dir = "/tmp/merge_chain/own_shard4"
+    shutil.rmtree(out_dir, ignore_errors=True)
+    run(f"kaggle kernels output {OWN_SHARD4_KERNEL} -p {out_dir}")
+    hits = [os.path.dirname(p) for p in
+            glob.glob(f"{out_dir}/**/adapter_config.json", recursive=True)
+            if "adapter_final" in p]
+    if not hits:
+        raise RuntimeError(f"shard4 kernel COMPLETE but no adapter_final found in {out_dir}")
+
+    if os.path.exists(OWN_SHARD4_STAGE):
+        shutil.rmtree(OWN_SHARD4_STAGE)
+    shutil.copytree(hits[0], OWN_SHARD4_STAGE)
+    with open(f"{OWN_SHARD4_STAGE}/dataset-metadata.json", "w") as f:
+        json.dump({"title": "nascenia-shard-4-adapter", "id": OWN_SHARD4_DATASET,
+                   "licenses": [{"name": "CC-BY-NC-SA-4.0"}]}, f)
+    run(f"kaggle datasets create -p {OWN_SHARD4_STAGE} -q")
+    return "published shard4 adapter dataset (processing async)"
+
+
 def download_dataset(ref, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     run(f"kaggle datasets download {ref} -p {out_dir} --unzip")
@@ -220,10 +268,11 @@ def step_once(st):
     if st["phase"] == "waiting":
         if not own_chain_done():
             return "own chain not finished yet"
+        shard4_msg = ensure_own_shard4_published()
         tm = teammates_ready()
         not_ready = [f"shard{s}({u})" for s, (u, _, ok) in tm.items() if not ok]
         if not_ready:
-            return f"waiting on teammates: {', '.join(not_ready)}"
+            return f"{shard4_msg}; waiting on: {', '.join(not_ready)}"
         merge_and_publish()
         st["phase"] = "merged"
         save_state(st)
