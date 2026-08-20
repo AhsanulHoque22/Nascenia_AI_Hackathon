@@ -49,9 +49,21 @@ def assert_compatible(adapter_dirs, configs):
     a differing r/alpha/target_modules means these were not trained under
     the shared-init assumption this technique depends on."""
     keys_to_check = ["r", "lora_alpha", "target_modules", "peft_type", "task_type"]
-    base = {k: configs[0].get(k) for k in keys_to_check}
+
+    def normalize(cfg):
+        d = {k: cfg.get(k) for k in keys_to_check}
+        # target_modules is a SET of module names -- LoRA applies to each
+        # independently, so list order has no effect on training or
+        # compatibility. It just comes back differently ordered across
+        # separate training processes (set serialization isn't stable).
+        # Comparing it as an ordered list produces false positives.
+        if d.get("target_modules") is not None:
+            d["target_modules"] = sorted(d["target_modules"])
+        return d
+
+    base = normalize(configs[0])
     for d, cfg in zip(adapter_dirs, configs):
-        this = {k: cfg.get(k) for k in keys_to_check}
+        this = normalize(cfg)
         if this != base:
             raise SystemExit(
                 f"REFUSING TO MERGE: {d} has incompatible LoRA config.\n"

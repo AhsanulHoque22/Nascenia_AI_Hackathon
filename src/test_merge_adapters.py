@@ -72,6 +72,15 @@ def main():
             pass
         make_adapter(a3, 3.0)  # restore for any later use
 
+        # Same target_modules, different LIST ORDER must NOT be refused --
+        # it's a set semantically, and separate training processes serialize
+        # it in different orders. Regression test for a real false-positive
+        # bug that blocked the first real 4-adapter merge in production.
+        reordered_cfg = dict(CFG, target_modules=list(reversed(CFG["target_modules"])))
+        make_adapter(a3, 3.0, cfg=reordered_cfg)
+        merge([a1, a3], os.path.join(tmp, "reordered_ok"))  # must not raise
+        make_adapter(a3, 3.0)  # restore for any later use
+
         # Incompatible tensor shapes must be REFUSED.
         bad_shape = os.path.join(tmp, "bad_shape")
         os.makedirs(bad_shape, exist_ok=True)
