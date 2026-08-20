@@ -43,7 +43,9 @@ jobs:
           # --index-url with regular packages would restrict ALL of them to
           # PyTorch's wheel index, where kaggle/pandas/safetensors don't exist.
           pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
-          pip install --quiet kaggle safetensors
+          # numpy is a real dependency here even though nothing imports it
+          # directly -- safetensors.torch.save_file() needs it internally.
+          pip install --quiet kaggle safetensors numpy
 
       - name: advance the merge chain
         env:
