@@ -8,7 +8,15 @@
   "enable_gpu": true,
   "machine_shape": "NvidiaTeslaT4",
   "enable_internet": true,
-  "dataset_sources": ["ahsanulhoque48cu/nascenia-processed-data"],
+  "dataset_sources": [
+    "ahsanulhoque48cu/nascenia-processed-data",
+    "ahsanulhoque48cu/nascenia-merged-adapter",
+    "sanzidislam/nascenia-shard-2-adapter",
+    "sanzid65/nascenia-shard-3-adapter",
+    "ahsanulhoque48cu/nascenia-shard-4-adapter"
+  ],
   "competition_sources": [],
-  "kernel_sources": ["ahsanulhoque48cu/nascenia-day11-train"]
+  "kernel_sources": [
+    "ahsanulhoque48cu/nascenia-day11-train"
+  ]
 }
