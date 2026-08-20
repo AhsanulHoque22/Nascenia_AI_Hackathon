@@ -192,11 +192,17 @@ def load(adapter_dir):
 # every intermediate Trainer checkpoint (checkpoint-250, -500, ...), not
 # just adapter_final -- scoring those too roughly doubled runtime for no
 # benefit (they're mid-training snapshots of a single trajectory, not
-# independent submission candidates). Only adapter_final is a real
-# candidate; published teammate/merge datasets only ever contain that
-# folder anyway, so this filter is a no-op for them.
+# independent submission candidates).
+#
+# Exclude by "/checkpoint-" (HF Trainer's fixed naming for intermediate
+# saves), NOT by requiring "adapter_final" in the path -- published
+# teammate/merge datasets have their adapter_final CONTENTS as the dataset
+# ROOT (the folder name itself was stripped during publishing), so an
+# "adapter_final" substring filter silently excludes all of them and only
+# ever finds the own-account kernel_sources mount. Confirmed the hard way:
+# a real run found "1 checkpoint(s)" instead of 5.
 roots = [p for p in glob.glob("/kaggle/input/**/adapter_config.json", recursive=True)
-         if "adapter_final" in p]
+         if "/checkpoint-" not in p]
 ckpts = sorted({os.path.dirname(p) for p in roots})
 if not ckpts:
     raise SystemExit(f"no adapters found. /kaggle/input: {glob.glob('/kaggle/input/*')}")
