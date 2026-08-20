@@ -21,6 +21,7 @@ concurrency:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   advance:
@@ -54,6 +55,24 @@ jobs:
           fi
           python src/merge_chain.py --once | tee /tmp/step.log
           echo "### $(tail -1 /tmp/step.log)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: notify on completion
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fires exactly once -- this exact phrase only appears in step_once()'s
+          # return value on the tick it FIRST reaches "done"; every later tick
+          # returns "already done" instead, so this can't create a duplicate issue.
+          if grep -q "submission.csv ready" /tmp/step.log; then
+            BODY="Merge/scoring pipeline finished. \`submissions/submission.csv\` is ready in the repo. **Not submitted to the competition** -- that decision is still yours."
+            if [ -f submissions/checkpoint_selection.json ]; then
+              RANKING=$(cat submissions/checkpoint_selection.json)
+              BODY=$(printf '%s\n\nCheckpoint ranking (best composite score first):\n```json\n%s\n```' "$BODY" "$RANKING")
+            fi
+            gh issue create \
+              --title "Training pipeline complete -- submission.csv ready" \
+              --body "$BODY"
+          fi
 
       - name: commit state
         if: always()
