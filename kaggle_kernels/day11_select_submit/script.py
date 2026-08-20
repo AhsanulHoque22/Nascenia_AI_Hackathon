@@ -204,14 +204,47 @@ print(f"found {len(ckpts)} checkpoint(s):")
 for c in ckpts:
     print("  ", c)
 
+# Kaggle's free-tier hard-kills sessions with no warning (~9-12h); this
+# script previously had no time budget at all, so a kill mid-ranking-loop
+# would lose EVERYTHING -- no ranking, no submission. Two mitigations:
+#   1. save the ranking after every single checkpoint, not just at the end
+#   2. before starting each new checkpoint, check whether there's still
+#      enough budget left to ALSO finish the final test-set generation --
+#      that's the one artifact that actually matters (submission.csv), so
+#      it's worth skipping remaining checkpoints to protect it.
+MAX_HOURS = 8.5
+t_start = time.time()
+
 val = pd.read_json(f"{DATA_DIR}/val.jsonl", lines=True)
 sel = val.sample(n=N_SELECT, random_state=SEED).reset_index(drop=True)
 sel_inputs, sel_refs = sel["input"].tolist(), sel["output"].tolist()
 
+test = pd.read_json(f"{DATA_DIR}/test.jsonl", lines=True)
+test_inputs = test["input"].tolist()
+
+
+def save_ranking(results):
+    ranked = sorted(results, key=lambda r: -r["composite"])
+    with open("/kaggle/working/checkpoint_selection.json", "w") as f:
+        json.dump(ranked, f, indent=2, ensure_ascii=False)
+    return ranked
+
+
 # ---- 1. rank checkpoints by the real composite ----
 results = []
+sec_per_val_row = None
 for c in ckpts:
+    elapsed = time.time() - t_start
+    if sec_per_val_row is not None:
+        projected_next_candidate = sec_per_val_row * N_SELECT
+        projected_test_gen = sec_per_val_row * len(test_inputs)
+        if elapsed + projected_next_candidate + projected_test_gen > MAX_HOURS * 3600:
+            print(f"\nSkipping remaining {len(ckpts) - len(results)} checkpoint(s) -- "
+                  f"not enough time budget left to also finish test generation. "
+                  f"Scored {len(results)} so far.", flush=True)
+            break
     print(f"\n=== scoring {os.path.basename(c)} ===", flush=True)
+    c_t0 = time.time()
     model, tokenizer = load(c)
     preds = generate(model, tokenizer, sel_inputs)
     s = score(preds, sel_refs)
@@ -221,8 +254,14 @@ for c in ckpts:
           f"tokenF1 {s['token_f1']:.4f}  len_ratio {s['length_ratio']:.2f}", flush=True)
     del model
     torch.cuda.empty_cache()
+    if sec_per_val_row is None:
+        sec_per_val_row = (time.time() - c_t0) / N_SELECT
+    save_ranking(results)  # incremental -- survives a kill mid-loop
 
-results.sort(key=lambda r: -r["composite"])
+if not results:
+    raise SystemExit("no checkpoint finished scoring within the time budget")
+
+results = save_ranking(results)
 best = results[0]
 print("\n" + "=" * 70)
 print("RANKING")
@@ -233,16 +272,12 @@ print(f"\nBEST: {best['checkpoint']}  composite {best['composite']:.4f}")
 print("Reference points — constant-string baseline ~0.60, "
       "zero-shot (200-tok cap) 0.5037")
 
-with open("/kaggle/working/checkpoint_selection.json", "w") as f:
-    json.dump(results, f, indent=2, ensure_ascii=False)
-
 # ---- 2. generate the submission with the winner ----
 print(f"\n=== generating test submission with {os.path.basename(best['checkpoint'])} ===",
       flush=True)
 model, tokenizer = load(best["checkpoint"])
-test = pd.read_json(f"{DATA_DIR}/test.jsonl", lines=True)
 t0 = time.time()
-preds = generate(model, tokenizer, test["input"].tolist())
+preds = generate(model, tokenizer, test_inputs)
 print(f"generated {len(preds)} rows in {(time.time()-t0)/60:.1f} min")
 
 mean_chars = sum(len(p) for p in preds) / len(preds)
