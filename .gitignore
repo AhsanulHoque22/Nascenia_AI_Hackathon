@@ -35,5 +35,7 @@ phase2_package/weights/
 # (regenerate with: cp data/processed/*.jsonl kaggle_dataset_processed/)
 kaggle_dataset_processed/
 
-# Orchestrator staging dir for the adapter upload (regenerated each shard)
+# Orchestrator staging dirs for adapter uploads (regenerated each run)
 kaggle_adapter/
+kaggle_shard4_adapter/
+kaggle_merged_adapter/
