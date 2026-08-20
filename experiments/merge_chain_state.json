@@ -1,5 +1,5 @@
 {
-  "phase": "waiting",
+  "phase": "merged",
   "merged_published": false,
-  "phase_error": "No module named 'numpy'"
+  "phase_error": null
 }
