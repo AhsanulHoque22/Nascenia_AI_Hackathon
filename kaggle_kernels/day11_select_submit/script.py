@@ -188,7 +188,15 @@ def load(adapter_dir):
 
 
 # ---- find checkpoints from the training kernel's output ----
-roots = [p for p in glob.glob("/kaggle/input/**/adapter_config.json", recursive=True)]
+# kernel_sources mounts the training kernel's FULL output, which includes
+# every intermediate Trainer checkpoint (checkpoint-250, -500, ...), not
+# just adapter_final -- scoring those too roughly doubled runtime for no
+# benefit (they're mid-training snapshots of a single trajectory, not
+# independent submission candidates). Only adapter_final is a real
+# candidate; published teammate/merge datasets only ever contain that
+# folder anyway, so this filter is a no-op for them.
+roots = [p for p in glob.glob("/kaggle/input/**/adapter_config.json", recursive=True)
+         if "adapter_final" in p]
 ckpts = sorted({os.path.dirname(p) for p in roots})
 if not ckpts:
     raise SystemExit(f"no adapters found. /kaggle/input: {glob.glob('/kaggle/input/*')}")
