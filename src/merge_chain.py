@@ -208,7 +208,8 @@ def merge_and_publish():
         raise RuntimeError(f"own chain COMPLETE but no adapter_final found in {own_dir}")
     adapter_dirs = [own_hits[0]]
 
-    for shard, (username, ref, _) in sorted(TEAMMATES.items()):
+    for shard, username in sorted(TEAMMATES.items()):
+        ref = f"{username}/nascenia-shard-{shard}-adapter"
         d = download_dataset(ref, f"/tmp/merge_chain/shard{shard}")
         if not os.path.exists(os.path.join(d, "adapter_config.json")):
             raise RuntimeError(f"{ref} downloaded but has no adapter_config.json at top level: "
