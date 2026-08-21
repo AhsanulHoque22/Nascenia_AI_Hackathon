@@ -1,0 +1,67 @@
+[
+  {
+    "bertscore": 0.6770111322402954,
+    "token_f1": 0.5580829608423411,
+    "rouge_l": 0.26898696074346756,
+    "token_f1_ws": 0.11214157352089593,
+    "rouge_l_ws": 0.06871280779053912,
+    "composite": 0.5597278465215435,
+    "composite_ws": 0.38589059973452433,
+    "mean_pred_chars": 713.9733333333334,
+    "mean_ref_chars": 634.1266666666667,
+    "length_ratio": 1.1259159579053606,
+    "checkpoint": "/kaggle/input/datasets/sanzidislam/nascenia-shard-2-adapter"
+  },
+  {
+    "bertscore": 0.6775991916656494,
+    "token_f1": 0.5543168372013932,
+    "rouge_l": 0.2699791084514996,
+    "token_f1_ws": 0.11308397858194451,
+    "rouge_l_ws": 0.0686726336175854,
+    "composite": 0.5590904686835426,
+    "composite_ws": 0.38645931613092516,
+    "mean_pred_chars": 702.18,
+    "mean_ref_chars": 634.1266666666667,
+    "length_ratio": 1.1073182014108642,
+    "checkpoint": "/kaggle/input/datasets/ahsanulhoque48cu/nascenia-merged-adapter"
+  },
+  {
+    "bertscore": 0.678661584854126,
+    "token_f1": 0.5540222333636408,
+    "rouge_l": 0.2671841481353053,
+    "token_f1_ws": 0.11075149538814555,
+    "rouge_l_ws": 0.06636689016705813,
+    "composite": 0.5589742920632164,
+    "composite_ws": 0.38582961907691826,
+    "mean_pred_chars": 672.5333333333333,
+    "mean_ref_chars": 634.1266666666667,
+    "length_ratio": 1.06056623808072,
+    "checkpoint": "/kaggle/input/datasets/ahsanulhoque48cu/nascenia-shard-4-adapter"
+  },
+  {
+    "bertscore": 0.6777628660202026,
+    "token_f1": 0.5540171382303904,
+    "rouge_l": 0.26722150944265965,
+    "token_f1_ws": 0.10857550467450508,
+    "rouge_l_ws": 0.06696879407186511,
+    "composite": 0.5585308763677503,
+    "composite_ws": 0.3848478432268259,
+    "mean_pred_chars": 701.88,
+    "mean_ref_chars": 634.1266666666667,
+    "length_ratio": 1.106845109809817,
+    "checkpoint": "/kaggle/input/datasets/sanzid65/nascenia-shard-3-adapter"
+  },
+  {
+    "bertscore": 0.6728698015213013,
+    "token_f1": 0.5539653800732294,
+    "rouge_l": 0.26879789887399624,
+    "token_f1_ws": 0.11155035966884602,
+    "rouge_l_ws": 0.07163245909400008,
+    "composite": 0.5563840945574187,
+    "composite_ws": 0.3842265004801045,
+    "mean_pred_chars": 697.1933333333334,
+    "mean_ref_chars": 634.1266666666667,
+    "length_ratio": 1.0994543676867925,
+    "checkpoint": "/kaggle/input/datasets/ahsanulhoque48cu/nascenia-adapter"
+  }
+]
