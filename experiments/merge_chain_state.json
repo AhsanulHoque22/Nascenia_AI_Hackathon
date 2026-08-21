@@ -1,5 +1,6 @@
 {
-  "phase": "done",
+  "phase": "blocked_awaiting_teammate_run",
   "merged_published": false,
-  "phase_error": null
+  "phase_error": null,
+  "note": "Account-1 select-submit kernel holds a STALE flawed result (only 1 of 5 candidates, from before the checkpoint-filter bug fix) and cannot be re-run: GPU quota exhausted until 2026-08-22T00:00. Waiting on a teammate to run kaggle_kernels/day11_select_submit_teammate/setup_and_push.sh. Do NOT let step_once() re-harvest the account-1 kernel -- this phase value is intentionally not 'scoring' so the cron no-ops instead of re-pulling the stale result."
 }
