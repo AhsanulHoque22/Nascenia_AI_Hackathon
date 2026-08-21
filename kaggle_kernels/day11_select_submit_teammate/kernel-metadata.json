@@ -1,0 +1,21 @@
+{
+  "id": "REPLACE_ME_teammate_username/nascenia-day11-select-submit",
+  "title": "nascenia-day11-select-submit",
+  "code_file": "script.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_internet": true,
+  "dataset_sources": [
+    "ahsanulhoque48cu/nascenia-processed-data",
+    "ahsanulhoque48cu/nascenia-adapter",
+    "ahsanulhoque48cu/nascenia-merged-adapter",
+    "ahsanulhoque48cu/nascenia-shard-4-adapter",
+    "sanzidislam/nascenia-shard-2-adapter",
+    "sanzid65/nascenia-shard-3-adapter"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}
