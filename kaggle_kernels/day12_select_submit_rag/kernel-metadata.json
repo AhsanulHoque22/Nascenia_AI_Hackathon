@@ -1,0 +1,17 @@
+{
+  "id": "ahsanulhoque48cu/nascenia-day12-select-submit-rag",
+  "title": "nascenia-day12-select-submit-rag",
+  "code_file": "script.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_internet": true,
+  "dataset_sources": [
+    "ahsanulhoque48cu/nascenia-processed-data",
+    "ahsanulhoque48cu/nascenia-rag-adapter"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}
