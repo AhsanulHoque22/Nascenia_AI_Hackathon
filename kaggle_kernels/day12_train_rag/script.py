@@ -76,14 +76,21 @@ DATA_DIR = "/kaggle/input/datasets/ahsanulhoque48cu/nascenia-processed-data"
 OUT_DIR = "/kaggle/working/run"
 BASE_MODEL = "Qwen/Qwen3-1.7B"
 SEED = 42
-MAX_SEQ_LEN = 1792          # up from 1152 -- retrieval-augmented prompts run
+MAX_SEQ_LEN = 1664          # up from 1152 -- retrieval-augmented prompts run
                              # ~2.7x longer on average (measured: 1094 vs 405
                              # chars mean); some tail truncation is expected
                              # and acceptable, same tradeoff the original
                              # pipeline already made at 1152
 MIN_PROMPT_TOKENS = 64
-BATCH_SIZE = 4
-GRAD_ACCUM = 4
+BATCH_SIZE = 2               # halved from the non-RAG trainer's 4 -- the
+                              # [batch, seq_len, vocab] loss logits tensor at
+                              # 1792 needed 4.06GB alone and OOM'd on a T4
+                              # (14.56GB total, 11.93GB already used by the
+                              # base model + activations at the longer
+                              # sequence length). Confirmed the hard way on
+                              # a real run. GRAD_ACCUM doubled to keep the
+                              # same effective batch size of 16.
+GRAD_ACCUM = 8
 LR = 2e-4
 WARMUP_RATIO = 0.03
 LORA_R, LORA_ALPHA = 32, 64
