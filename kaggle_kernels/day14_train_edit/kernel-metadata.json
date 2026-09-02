@@ -1,0 +1,16 @@
+{
+  "id": "ahsanulhoque48cu/nascenia-day14-train-edit",
+  "title": "nascenia-day14-train-edit",
+  "code_file": "script.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_internet": true,
+  "dataset_sources": [
+    "ahsanulhoque48cu/nascenia-edit-data"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}

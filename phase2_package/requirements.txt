@@ -1,0 +1,14 @@
+# Training and inference both ran on Kaggle's Python GPU notebook image
+# (kaggle/python), which ships transformers/torch/accelerate preinstalled.
+# These were the only packages explicitly pip-installed on top of that image
+# (see kaggle_kernels/*/script.py pip install lines) plus what this
+# inference script itself imports.
+peft
+bitsandbytes>=0.46.1
+bert-score
+rouge-score
+pandas
+numpy
+torch
+transformers
+accelerate
